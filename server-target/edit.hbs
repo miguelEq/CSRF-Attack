@@ -5,6 +5,7 @@
   <div class="mb-3">
     <label for="exampleInputEmail1" class="form-label">New email address</label>
     <input name="email" type="email" placeholder="new Email" class="form-control">
+    <input type="hidden" name="csrf" value="{{ token }}">
   </div>
   <button type="submit" class="btn btn-primary">submit</button>
 </form>

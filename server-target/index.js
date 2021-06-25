@@ -1,7 +1,7 @@
 const express= require('express')
 const session = require('express-session');
 const handlebars = require('express-handlebars');
-
+const { v4: uuid } = require('uuid');
 const app = express()
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
@@ -32,6 +32,27 @@ function authentication(req,res,next){
        next()
 }
 
+function csrf (req, res, next) {
+  const token = req.body.csrf;
+  if (!token || !tokens.get(req.sessionID).has(token)) {
+    return res.status(422).send('CSRF Token missing ');
+  } else {
+    next();
+  }
+}
+// CSRF
+
+const tokens = new Map();
+
+const csrfToken = (sessionId) => {
+  const token = uuid();
+  const userTokens = tokens.get(sessionId);
+  userTokens.add(token);
+  return token;
+}
+
+
+
 //Rutas
 
 app.get('/',(req,res)=>{
@@ -55,6 +76,7 @@ app.post('/login', (req, res) => {
        return res.redirect('/login') 
     }
     req.session.userId = user.id
+    tokens.set(req.sessionID, new Set());
     res.redirect('/home')
 })
 
@@ -64,10 +86,10 @@ app.get('/logout', authentication, (req, res) => {
   })
 
 app.get('/edit', authentication, (req, res) => {
-    res.render('edit')
+    res.render('edit',{ token: csrfToken(req.sessionID) })
   });
 
-app.post('/edit', authentication, (req, res) => {
+app.post('/edit', authentication,csrf, (req, res) => {
     const user = users.find(user => user.id === req.session.userId);
     user.email = req.body.email;
     const index = users.findIndex(u =>u.id === user.id)
